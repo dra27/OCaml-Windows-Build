@@ -85,7 +85,7 @@ diff -Naur js-1.7.0/src/config/WINNT-MinGW-Cygwin-6.0.mk js-1.7.0/src/config/WIN
 +JSDLL_CFLAGS = -DEXPORT_JS_API
 +PREBUILT_CPUCFG = 1
 +
-+LIB_LINK_FLAGS= --add-stdcall-alias -L./fdlibm/$(OBJDIR) -lfdm
++LIB_LINK_FLAGS= -Wl,--add-stdcall-alias -L./fdlibm/$(OBJDIR) -lfdm
 +EXE_LINK_FLAGS= 
 +
 +# LIB_LINK_FLAGS=-lkernel32 -luser32 -lgdi32 -lwinspool -lcomdlg32 -ladvapi32 -lshell32 -lole32 -loleaut32 -luuid -lwinmm
@@ -232,7 +232,7 @@ diff -Naur js-1.7.0/src/config/WINNT-MinGW-MSYS-5.1.mk js-1.7.0/src/config/WINNT
 +JSDLL_CFLAGS = -DEXPORT_JS_API
 +PREBUILT_CPUCFG = 1
 +
-+LIB_LINK_FLAGS= --add-stdcall-alias -L./fdlibm/$(OBJDIR) -lfdm
++LIB_LINK_FLAGS= -Wl,--add-stdcall-alias -L./fdlibm/$(OBJDIR) -lfdm
 +EXE_LINK_FLAGS= 
 +
 +# LIB_LINK_FLAGS=-lkernel32 -luser32 -lgdi32 -lwinspool -lcomdlg32 -ladvapi32 -lshell32 -lole32 -loleaut32 -luuid -lwinmm
