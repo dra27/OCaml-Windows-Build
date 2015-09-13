@@ -1,0 +1,12 @@
+* text
+
+*.patch text eol=lf
+*.cmd text eol=crlf
+
+*.tar.gz binary
+*.tar.bz2 binary
+*.zip binary
+*.tgz binary
+
+*.dll binary
+*.exe binary
