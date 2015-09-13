@@ -837,13 +837,13 @@ Package Repo-SHA [Repos] {}
 Package SHA [Findlib Repo-SHA]
 *#   Homepage: https://github.com/vincenthz/ocaml-sha
 *#   Files   : git 
-*#   Patches : The patch to snprintf may be because of a bug in flexlink (submitted upstream)
+*#   Patches : The patch to remove O_CLOEXEC didn't used to be necessary (Cygwin change? not yet submitted upstream)
 *#   Dependencies: Findlib
 Docs ocaml-sha-1.9/html/*
 *cd ocaml-sha-1.9
 *git checkout ocaml-sha-v1.9
 *rm -rf .git
-*#sed -i -e "s/snprintf/_snprintf/" *.c
+*sed -i -e "s/| O_CLOEXEC//" *.c
 *make all doc bins install
 *cd ..
 *testPackage sha
