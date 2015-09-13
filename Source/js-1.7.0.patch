@@ -470,11 +470,12 @@ diff -Naur js-1.7.0/src/config/WINNT5.2.mk js-1.7.0/src/config/WINNT5.2.mk
 diff -Naur js-1.7.0/src/config.mk js-1.7.0/src/config.mk
 --- js-1.7.0/src/config.mk	2006-07-27 22:00:57.000000000 +0100
 +++ js-1.7.0/src/config.mk	2012-01-15 07:56:53.615601200 +0000
-@@ -79,6 +79,7 @@
+@@ -79,6 +79,8 @@
  endif
  ifeq (CYGWIN_NT,$(findstring CYGWIN_NT,$(OS_ARCH)))
  	OS_RELEASE := $(patsubst CYGWIN_NT-%,%,$(OS_ARCH))
 +	OS_RELEASE := $(patsubst %-WOW64,%,$(OS_RELEASE))
++	OS_RELEASE := $(patsubst %-WOW,%,$(OS_RELEASE))
  	OS_ARCH    := WINNT
  endif
  ifeq ($(OS_ARCH), CYGWIN32_NT)
