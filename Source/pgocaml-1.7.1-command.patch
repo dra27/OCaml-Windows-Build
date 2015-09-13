@@ -1,0 +1,22 @@
+diff -Naur pgocaml-1.7.1/src/pa_pgsql.ml pgocaml-1.7.1/src/pa_pgsql.ml
+--- pgocaml-1.7.1/src/pa_pgsql.ml	2009-10-23 21:50:46.000000000 +0100
++++ pgocaml-1.7.1/src/pa_pgsql.ml	2009-12-30 16:55:49.634710300 +0000
+@@ -45,6 +45,8 @@
+ 
+ let connections : (key, unit PGOCaml.t) Hashtbl.t = Hashtbl.create 13
+ 
++let init_command = try Sys.getenv "PGCOMMAND" with Not_found -> ""
++
+ let get_connection key =
+   try
+     Hashtbl.find connections key
+@@ -70,6 +72,9 @@
+       let unravel_query = "select typtype, typbasetype from pg_type where oid = $1" in
+       PGOCaml.prepare dbh ~query:unravel_query ~name:unravel_name ();
+ 
++      if init_command <> ""
++      then begin PGOCaml.prepare dbh ~query:init_command (); ignore (PGOCaml.execute dbh ~params:[] ()) end;
++
+       Hashtbl.add connections key dbh;
+       dbh
+ 

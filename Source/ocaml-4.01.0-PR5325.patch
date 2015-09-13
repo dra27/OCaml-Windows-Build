@@ -1,0 +1,69 @@
+diff -Naur ocaml-4.01.0/otherlibs/win32unix/accept.c ocaml-4.01.0/otherlibs/win32unix/accept.c
+--- ocaml-4.01.0/otherlibs/win32unix/accept.c	2013-06-14 12:50:12.000000000 +0100
++++ ocaml-4.01.0/otherlibs/win32unix/accept.c	2014-03-16 11:47:54.458835600 +0000
+@@ -25,30 +25,15 @@
+   SOCKET sconn = Socket_val(sock);
+   SOCKET snew;
+   value fd = Val_unit, adr = Val_unit, res;
+-  int oldvalue, oldvaluelen, newvalue, retcode;
+   union sock_addr_union addr;
+   socklen_param_type addr_len;
+   DWORD err = 0;
+ 
+-  oldvaluelen = sizeof(oldvalue);
+-  retcode = getsockopt(INVALID_SOCKET, SOL_SOCKET, SO_OPENTYPE,
+-                       (char *) &oldvalue, &oldvaluelen);
+-  if (retcode == 0) {
+-    /* Set sockets to synchronous mode */
+-    newvalue = SO_SYNCHRONOUS_NONALERT;
+-    setsockopt(INVALID_SOCKET, SOL_SOCKET, SO_OPENTYPE,
+-               (char *) &newvalue, sizeof(newvalue));
+-  }
+   addr_len = sizeof(sock_addr);
+   enter_blocking_section();
+   snew = accept(sconn, &addr.s_gen, &addr_len);
+   if (snew == INVALID_SOCKET) err = WSAGetLastError ();
+   leave_blocking_section();
+-  if (retcode == 0) {
+-    /* Restore initial mode */
+-    setsockopt(INVALID_SOCKET, SOL_SOCKET, SO_OPENTYPE,
+-               (char *) &oldvalue, oldvaluelen);
+-  }
+   if (snew == INVALID_SOCKET) {
+     win32_maperr(err);
+     uerror("accept", Nothing);
+diff -Naur ocaml-4.01.0/otherlibs/win32unix/socket.c ocaml-4.01.0/otherlibs/win32unix/socket.c
+--- ocaml-4.01.0/otherlibs/win32unix/socket.c	2013-06-14 12:50:12.000000000 +0100
++++ ocaml-4.01.0/otherlibs/win32unix/socket.c	2014-03-16 11:51:11.298831100 +0000
+@@ -32,7 +32,6 @@
+      value domain, type, proto;
+ {
+   SOCKET s;
+-  int oldvalue, oldvaluelen, newvalue, retcode;
+ 
+   #ifndef HAS_IPV6
+   /* IPv6 requires WinSock2, we must raise an error on PF_INET6 */
+@@ -42,23 +41,9 @@
+   }
+   #endif
+ 
+-  oldvaluelen = sizeof(oldvalue);
+-  retcode = getsockopt(INVALID_SOCKET, SOL_SOCKET, SO_OPENTYPE,
+-                       (char *) &oldvalue, &oldvaluelen);
+-  if (retcode == 0) {
+-    /* Set sockets to synchronous mode */
+-    newvalue = SO_SYNCHRONOUS_NONALERT;
+-    setsockopt(INVALID_SOCKET, SOL_SOCKET, SO_OPENTYPE,
+-               (char *) &newvalue, sizeof(newvalue));
+-  }
+   s = socket(socket_domain_table[Int_val(domain)],
+                    socket_type_table[Int_val(type)],
+                    Int_val(proto));
+-  if (retcode == 0) {
+-    /* Restore initial mode */
+-    setsockopt(INVALID_SOCKET, SOL_SOCKET, SO_OPENTYPE,
+-               (char *) &oldvalue, oldvaluelen);
+-  }
+   if (s == INVALID_SOCKET) {
+     win32_maperr(WSAGetLastError());
+     uerror("socket", Nothing);

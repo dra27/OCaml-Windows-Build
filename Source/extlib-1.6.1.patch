@@ -1,0 +1,69 @@
+diff -Naur extlib-1.6.1/install.ml extlib-1.6.1/install.ml
+--- extlib-1.6.1/install.ml	2013-11-26 03:15:37.000000000 +0000
++++ extlib-1.6.1/install.ml	2014-03-16 12:06:14.794060400 +0000
+@@ -20,6 +20,10 @@
+ 
+ open Printf
+ 
++type system =
++  | SystemWindows
++  | SystemUnix
++
+ type path =
+ 	| PathUnix
+ 	| PathDos
+@@ -49,9 +53,42 @@
+ 	"unzip";
+ ]
+ 
+-let obj_ext , lib_ext , cp_cmd , path_type = match Sys.os_type with
+-	| "Unix" | "Cygwin" | "MacOS" -> ".o" , ".a" , "cp", PathUnix
+-	| "Win32" -> ".obj" , ".lib" , "copy", PathDos
++let system, obj_ext , lib_ext , cp_cmd , path_type = match Sys.os_type with
++	| "Unix" | "Cygwin" | "MacOS" -> SystemUnix, ".o" , ".a" , "cp", PathUnix
++	| "Win32"
++	| "Win64" ->
++    begin
++      try
++        let rec f acc =
++          match acc with
++            (Some obj, Some lib) ->
++              close_in ch;
++              (obj, lib)
++          | (obj, lib) ->
++            let line =
++              let line = input_line ch
++              in
++                let l = String.length line - 1
++                in
++                  if line.[l] = '\r'
++                  then String.sub line 0 l
++                  else line
++            in
++              let l = String.length line - 9
++              in
++                if l > 0
++                then match String.sub line 0 7 with
++                       "ext_obj" -> f (Some (String.sub line 9 l), lib)
++                     | "ext_lib" -> f (obj, Some (String.sub line 9 l))
++                     | _         -> f acc
++              else f acc
++        and ch = Unix.open_process_in "ocamlc -config"
++        in
++          let (obj_ext, lib_ext) = f (None, None)
++          in
++            (SystemWindows, obj_ext, lib_ext, "copy", PathDos)
++      with End_of_file -> failwith "Unable to determine ocamlc configuration"
++    end
+ 	| _ -> failwith "Unknown OS"
+ 
+ let run cmd =
+@@ -102,7 +139,7 @@
+ 		_ -> prerr_endline ("Warning : failed to delete " ^ file)
+ 
+ let is_findlib() =
+-	let findlib = Sys.command (if Sys.os_type = "Win32" then "ocamlfind printconf 2>NUL" else "ocamlfind printconf") = 0 in
++	let findlib = Sys.command (if system = SystemWindows then "ocamlfind printconf 2>NUL" else "ocamlfind printconf") = 0 in
+ 	if findlib then	print_endline "Using Findlib";
+ 	findlib
+ 

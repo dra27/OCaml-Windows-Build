@@ -1,0 +1,175 @@
+diff -Naur merlin-1.6/configure merlin-1.6/configure
+--- merlin-1.6/configure	2014-03-11 13:34:17.000000000 +0000
++++ merlin-1.6/configure	2014-03-17 14:57:51.582894600 +0000
+@@ -16,6 +16,7 @@
+ COL_CLEAR=$(tput sgr0)
+ COL_RED=$(tput setf 4)
+ COL_GREEN=$(tput setf 2)
++COL_YELLOW=$(tput setf 6)
+ 
+ check_package()
+ {
+@@ -60,6 +61,8 @@
+ END
+ }
+ 
++STDLIB_DIR=$(ocamlfind printconf stdlib)
++
+ while [ -n "$1" ]; do
+   case "$1" in
+     --prefix)
+@@ -111,7 +114,16 @@
+ check_package EXIT findlib "Hu! You have ocamlfind but not findlib? Something is wrong with your setup."
+ check_package EXIT yojson "Install yojson"
+ check_package EXIT menhirLib "Please install menhir."
+-STDLIB_DIR=$(ocamlfind printconf stdlib)
++
++which emacs >/dev/null 2>&1
++if [ $? -eq 0 ]; then
++  TARGET_EMACS=emacs/merlin.elc
++  printf "Found Emacs\t${COL_GREEN}GOOD${COL_CLEAR}\n"
++else
++  TARGET_EMACS=
++  printf "Missing Emacs\t${COL_YELLOW}WARN${COL_CLEAR}\n"
++fi
++
+ MAGIC_VERSION=$(ocamlfind c -config | grep cmi_magic_number|cut -d' ' -f2)
+ 
+ case "$MAGIC_VERSION" in
+@@ -142,11 +154,33 @@
+ For more informations rerun with --help.
+ END
+ 
+-rm -f "$PWD/src/ocaml" 2>&1 >/dev/null &&
+-  ln -sf "$PWD/src/$OCAML_VERSION" "$PWD/src/ocaml"
++SYSTEM=$(ocamlfind c -config | grep system|cut -d' ' -f2)
++case "$SYSTEM" in
++  mingw*)
++    rm -rf "$PWD/src/ocaml" 2>&1 >/dev/null &&
++      cp -R "$PWD/src/$OCAML_VERSION" "$PWD/src/ocaml"
++    ;;
++  *)
++    rm -f "$PWD/src/ocaml" 2>&1 >/dev/null &&
++      ln -sf "$PWD/src/$OCAML_VERSION" "$PWD/src/ocaml"
++    ;;
++esac
+ 
+ mkdir -p "$PWD/src/config"
+ 
++OS_TYPE=$(ocamlfind c -config | grep os_type|cut -d' ' -f2)
++
++case "$OS_TYPE" in
++  Win32)
++    EXE=.exe
++    INSTALL_SCRIPTS=
++    ;;
++  *)
++    EXE=
++    INSTALL_SCRIPTS=install-binary-scripts
++    ;;
++esac
++
+ if [ -d "$STDLIB_DIR" ]; then
+   cat >Makefile.config <<END
+ BIN_DIR=$BIN_DIR
+@@ -154,6 +188,9 @@
+ VIM_DIR=$VIM_DIR
+ WITH_BIN_ANNOT=$WITH_BIN_ANNOT
+ WITH_VIMBUFSYNC=$WITH_VIMBUFSYNC
++EXE=$EXE
++INSTALL_SCRIPTS=$INSTALL_SCRIPTS
++TARGET_EMACS=$TARGET_EMACS
+ END
+   cat >src/config/myocamlbuild_config.ml <<END
+ let libdir = "$STDLIB_DIR";;
+diff -Naur merlin-1.6/Makefile merlin-1.6/Makefile
+--- merlin-1.6/Makefile	2014-03-11 13:34:17.000000000 +0000
++++ merlin-1.6/Makefile	2014-03-17 14:46:26.594912200 +0000
+@@ -3,8 +3,6 @@
+ TARGET = ocamlmerlin.native
+ #TARGET = src/spine.cmo
+ 
+-TARGET_EMACS = emacs/merlin.elc
+-
+ OCAMLBUILD=ocamlbuild -Is src,src/config,src/utils,src/ocaml$(TYPER_VERSION),src/ocaml$(TYPER_VERSION)/utils,src/ocaml$(TYPER_VERSION)/typing,src/ocaml$(TYPER_VERSION)/parsing
+ OCAMLFIND=ocamlfind
+ EMACS=emacs
+@@ -53,12 +51,16 @@
+ 	@echo
+ 	rm -f Makefile.config $(CONFIG_FILES) $(TARGET)
+ 
+-install-binary: $(TARGET)
++install-binary-common: $(TARGET)
+ 	install -d $(BIN_DIR)
+-	install $(TARGET) $(BIN_DIR)/ocamlmerlin
++	install $(TARGET) $(BIN_DIR)/ocamlmerlin$(EXE)
++
++install-binary-scripts:
+ 	install omake-merlin $(BIN_DIR)/omake-merlin
+ 	install jenga-merlin $(BIN_DIR)/jenga-merlin
+ 
++install-binary: install-binary-common $(INSTALL_SCRIPTS)
++
+ install-share: $(TARGET) $(TARGET_EMACS)
+ 	install -d $(SHARE_DIR)
+ 	install -d $(SHARE_DIR)/emacs/site-lisp
+@@ -90,4 +92,4 @@
+ 	@echo
+ 
+ uninstall:
+-	rm -rf $(SHARE_DIR)/ocamlmerlin $(BIN_DIR)/omake-merlin $(BIN_DIR)/ocamlmerlin $(SHARE_DIR)/emacs/site-lisp/merlin.el
++	rm -rf $(SHARE_DIR)/ocamlmerlin $(BIN_DIR)/jenga-merlin $(BIN_DIR)/omake-merlin $(BIN_DIR)/ocamlmerlin$(EXE) $(SHARE_DIR)/emacs/site-lisp/merlin.el
+diff -Naur merlin-1.6/vim/merlin/autoload/merlin.py merlin-1.6/vim/merlin/autoload/merlin.py
+--- merlin-1.6/vim/merlin/autoload/merlin.py	2014-03-11 13:34:17.000000000 +0000
++++ merlin-1.6/vim/merlin/autoload/merlin.py	2014-03-17 15:57:07.769973000 +0000
+@@ -6,6 +6,7 @@
+ import os
+ import sys
+ from itertools import groupby
++from sys import platform
+ 
+ import vimbufsync
+ vimbufsync.check_version("0.1.0",who="merlin")
+@@ -52,12 +53,24 @@
+     try:
+       command = [vim.eval("merlin#FindOcamlMerlin()"),"-ignore-sigint"]
+       command.extend(flags)
+-      self.mainpipe = subprocess.Popen(
+-              command,
+-              stdin=subprocess.PIPE,
+-              stdout=subprocess.PIPE,
+-              stderr=None,
+-          )
++      if platform == "win32":
++        info = subprocess.STARTUPINFO()
++        info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
++        info.wShowWindow = subprocess.SW_HIDE
++        self.mainpipe = subprocess.Popen(
++                command,
++                stdin=subprocess.PIPE,
++                stdout=subprocess.PIPE,
++                stderr=subprocess.PIPE,
++                startupinfo=info,
++            )
++      else:
++        self.mainpipe = subprocess.Popen(
++                command,
++                stdin=subprocess.PIPE,
++                stdout=subprocess.PIPE,
++                stderr=subprocess.None,
++            )
+     except OSError as e:
+       print("Failed starting ocamlmerlin. Please ensure that ocamlmerlin binary\
+               is executable.")
+@@ -542,7 +555,10 @@
+ 
+ def load_project(directory,force=False):
+   command = [vim.eval("merlin#FindOcamlMerlin()"), "-project-find", directory]
+-  process = subprocess.Popen(command, stdout=subprocess.PIPE)
++  if platform == "win32":
++    process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
++  else:
++    process = subprocess.Popen(command, stdout=subprocess.PIPE)
+   name = process.communicate()[0].strip()
+   if not force:
+     if name == vim.eval("b:merlin_project"): return

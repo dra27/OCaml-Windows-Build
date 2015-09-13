@@ -1,0 +1,64 @@
+diff -Naur pgocaml-1.7.1/src/pGOCaml.ml pgocaml-1.7.1/src/pGOCaml.ml
+--- pgocaml-1.7.1/src/PGOCaml.ml	2009-09-02 17:40:36.000000000 +0100
++++ pgocaml-1.7.1/src/PGOCaml.ml	2012-02-24 15:52:19.786670500 +0000
+@@ -25,17 +25,49 @@
+   let (>>=) v f =  f v
+   let fail = raise
+ 
+-  type in_channel = Pervasives.in_channel
+-  type out_channel = Pervasives.out_channel
+-  let open_connection = Unix.open_connection
+-  let output_char = output_char
+-  let output_binary_int = output_binary_int
+-  let output_string = output_string
+-  let flush = flush
+-  let input_char = input_char
+-  let input_binary_int = input_binary_int
+-  let really_input = really_input
+-  let close_in = close_in
++  type in_channel = (*Pervasives.in_channel*) Unix.file_descr
++  type out_channel = (*Pervasives.out_channel*) Unix.file_descr
++  let open_connection addr = (*Unix.open_connection*)
++    let s = Unix.socket (Unix.domain_of_sockaddr addr) Unix.SOCK_STREAM 0
++    in
++      Unix.connect s addr;
++      (s, s)
++  let output_char s c =
++    let b = " "
++    in
++      b.[0] <- c;
++      ignore (Unix.write s b 0 1)
++  let output_binary_int s n =
++    let b = "    "
++    in
++      b.[0] <- char_of_int ((n lsr 24) land 255);
++      b.[1] <- char_of_int ((n lsr 16) land 255);
++      b.[2] <- char_of_int ((n lsr 8) land 255);
++      b.[3] <- char_of_int (n land 255);
++      ignore (Unix.write s b 0 4)
++  let output_string s b =
++    ignore (Unix.write s b 0 (String.length b))
++  let flush _ = ()
++  let input_char s =
++    let b = "\000"
++    in
++      ignore (Unix.read s b 0 1);
++      b.[0]
++  let rec really_input s b o l =
++    if l > 0
++    then let read = Unix.read s b o l
++         in
++           let l = l - read
++           in
++             if l > 0
++             then really_input s b (o + read) l
++  let input_binary_int s =
++    let b = "\000\000\000\000"
++    in
++      really_input s b 0 4;
++      int_of_char b.[0] lsl 24 + int_of_char b.[1] lsl 16 + int_of_char b.[2] lsl 8 + int_of_char b.[3]
++  let close_in s =
++    Unix.shutdown s Unix.SHUTDOWN_RECEIVE
+ end
+ 
+ module M = PGOCaml_generic.Make (Simple_thread)

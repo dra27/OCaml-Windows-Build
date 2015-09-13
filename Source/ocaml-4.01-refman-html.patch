@@ -1,0 +1,10 @@
+--- index.html	2013-09-12 12:41:52.000000000 +0100
++++ index.html	2014-03-16 11:58:04.667322300 +0000
+@@ -87,6 +87,7 @@
+ <ul>
+ <li><a href="core.html">The core library</a>
+ </li><li><a href="stdlib.html">The standard library</a>
++</li><li><a href="userlib">User-installed libraries</a>
+ </li><li><a href="libunix.html">The unix library: Unix system calls</a>
+ </li><li><a href="libnum.html">The num library: arbitrary-precision rational arithmetic</a>
+ </li><li><a href="libstr.html">The str library: regular expressions and string processing</a>

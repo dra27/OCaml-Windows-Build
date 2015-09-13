@@ -1,0 +1,41 @@
+diff -Naur json-wheel-1.0.6/Makefile json-wheel-1.0.6/Makefile
+--- json-wheel-1.0.6/Makefile	2009-01-15 14:33:53.000000000 +0000
++++ json-wheel-1.0.6/Makefile	2013-06-19 16:30:11.832066000 +0100
+@@ -30,10 +30,10 @@
+ 
+ .PHONY: default all opt install uninstall html archive test
+ 
+-default: bcl ncl jsoncat
++default: bcl ncl jsoncat$(EXE)
+ 
+ all: bcl
+-opt: ncl jsoncat
++opt: ncl jsoncat$(EXE)
+ 
+ 
+ install:
+@@ -51,12 +51,12 @@
+ 
+ version.ml: Makefile
+ 	echo 'let version = "$(VERSION)"' > version.ml
+-jsoncat: version.ml jsoncat.ml
++jsoncat$(EXE): version.ml jsoncat.ml
+ 	$(MAKE) ncl
+-	ocamlfind ocamlopt -o jsoncat -package $(PACKS) -linkpkg \
++	ocamlfind ocamlopt -o jsoncat$(EXE) -package $(PACKS) -linkpkg \
+ 		$(RESULT).cmxa version.ml jsoncat.ml
+ 
+-test: jsoncat
++test: jsoncat$(EXE)
+ 	./jsoncat -test
+ 	cmp sample-compact.json sample-compact2.json
+ 	cmp sample-indented.json sample-indented2.json
+@@ -101,7 +101,7 @@
+ 	cp html/* $$WWW/$(NAME)-doc
+ 
+ 
+-TRASH = jsoncat jsoncat.o jsoncat.cm* version.* \
++TRASH = jsoncat$(EXE) jsoncat.o jsoncat.cm* version.* \
+   sample-compact.json sample-compact2.json \
+   sample-indented.json sample-indented2.json
+ 

@@ -1,0 +1,44 @@
+diff -Naur pgocaml-1.7.1/src/pa_pgsql.ml pgocaml-1.7.1/src/pa_pgsql.ml
+--- pgocaml-1.7.1/src/pa_pgsql.ml	2009-10-23 22:50:46.000000000 +0200
++++ pgocaml-1.7.1/src/pa_pgsql.ml	2012-03-10 18:42:07.913860400 +0100
+@@ -101,6 +101,7 @@
+ let pgsql_expand ?(flags = []) loc dbh query =
+   (* Parse the flags. *)
+   let f_execute = ref false in
++  let f_compile = ref true in
+   let f_nullable_results = ref false in
+   let key = ref { host = None; port = None; user = None;
+ 		  password = None; database = None;
+@@ -108,6 +109,7 @@
+   List.iter (
+     function
+     | "execute" -> f_execute := true
++    | "compile" -> f_execute := true; f_compile := false
+     | "nullable-results" -> f_nullable_results := true
+     | str when String.starts_with str "host=" ->
+ 	let host = String.sub str 5 (String.length str - 5) in
+@@ -133,6 +135,7 @@
+ 	)
+   ) flags;
+   let f_execute = !f_execute in
++  let f_compile = !f_compile in
+   let f_nullable_results = !f_nullable_results in
+   let key = !key in
+ 
+@@ -203,6 +206,8 @@
+    *)
+   if f_execute then ignore (PGOCaml.execute my_dbh ~params:[] ());
+ 
++  if f_compile then begin
++
+   (* Number of params should match length of map, otherwise something
+    * has gone wrong in the substitution above.
+    *)
+@@ -405,6 +410,7 @@
+       <:expr<
+ 	PGOCaml.bind $expr$ (fun _rows -> PGOCaml.return ())
+       >>
++  end else <:expr< () >>
+ 
+ open Syntax
+ 

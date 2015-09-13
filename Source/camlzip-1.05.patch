@@ -1,0 +1,23 @@
+diff -Naur camlzip-1.05/META camlzip-1.05/META
+--- camlzip-1.05/META	2012-10-12 04:36:07.000000000 +0100
++++ camlzip-1.05/META	2013-06-19 10:52:03.635147100 +0100
+@@ -1,4 +1,7 @@
++name="zip"
+ version="1.05"
++description="reading and writing ZIP, JAR and GZIP files"
+ requires="unix"
+ archive(byte)="zip.cma"
+ archive(native)="zip.cmxa"
++linkopts = ""
+diff -Naur camlzip-1.05/Makefile camlzip-1.05/Makefile
+--- camlzip-1.05/Makefile	2012-10-12 04:36:07.000000000 +0100
++++ camlzip-1.05/Makefile	2013-06-19 10:52:39.815216500 +0100
+@@ -69,7 +69,7 @@
+ 	cp zip.cmxa zip.a zip.cmx gzip.cmx $(INSTALLDIR)
+ 
+ install-findlib:
+-	ocamlfind install zip META *.mli *.a *.cmi *.cma $(wildcard *.cmxa) $(wildcard *.so)
++	ocamlfind install zip META *.mli *.a *.cmi *.cma $(wildcard *.cmx) $(wildcard *.cmxa) $(wildcard *.so) $(wildcard *.dll)
+ 
+ depend:
+ 	gcc -MM -I$(ZLIB_INCLUDE) *.c > .depend

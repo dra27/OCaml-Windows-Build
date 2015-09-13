@@ -1,0 +1,12 @@
+diff -Naur SpiderCaml-0.2/spiderCaml_stubs.c SpiderCaml-0.2/spiderCaml_stubs.c
+--- SpiderCaml-0.2/spiderCaml_stubs.c	2009-12-05 10:18:04.316852700 +0000
++++ SpiderCaml-0.2/spiderCaml_stubs.c	2009-12-04 17:43:18.076334900 +0000
+@@ -693,7 +693,7 @@
+   JSContext *ctx = get_ctx(cx);
+   jsval jv = caml_to_jsval(JS_GetRuntime(ctx),v);
+   return 
+-    Val_bool(JSVAL_IS_OBJECT(jv) && JS_IsArrayObject(ctx,JSVAL_TO_OBJECT(jv)));
++    Val_bool(!JSVAL_IS_NULL(jv) && JSVAL_IS_OBJECT(jv) && JS_IsArrayObject(ctx,JSVAL_TO_OBJECT(jv)));
+ }
+ 
+ /* Misc */
